@@ -416,11 +416,6 @@ func (styles *xlsxStyleSheet) Marshal() (string, error) {
 		}
 		result += xcellStyles
 	}
-	/*
-	styleBody, err := xml.Marshal(styles.Dxfs)
-	if err != nil {
-		return "", err
-	}*/
 	if styles.Dxfs.Dxf != nil{
 		xDxfs, err := styles.Dxfs.Marshal()
 		if err != nil{
@@ -428,8 +423,6 @@ func (styles *xlsxStyleSheet) Marshal() (string, error) {
 		}
 		result += xDxfs
 	}
-	
-	//fmt.Printf("Body: %+v",string(styleBody))
 	return result + "</styleSheet>", nil
 }
 
@@ -463,10 +456,6 @@ func (dxfsElement *dxfs) Marshal() (result string, err error) {
 }
 
 func (Dxf *xlsxDxf) Marshal() (result string, err error){
-	// dxf ima font i fill elemente uvijek, i za Font i Fill neki elementi iako su prazni trebaju biti izbačeni
-	// dakle proći kroz Font i izbaciti osve ukoliko su prazni 
-	// ova 4 su bila prazna: <sz></sz><name></name><family></family><charset>
-	// ostali za font su još koji nisu bili prazni: 
 	result = `<dxf>`
 	xxFont, err := Dxf.Font.Marshal()
 	if err != nil{
@@ -476,14 +465,11 @@ func (Dxf *xlsxDxf) Marshal() (result string, err error){
 		result += xxFont	
 	}
 	
-	// za fill su bili prazni:
-	// za fill su bili puni: 
-	//fmt.Printf("Fill: %+v", Dxf.Fill)
 	xxFill, err := Dxf.Fill.MarshalDxfFill()
 	if err != nil{
 		return 
 	}
-	//fmt.Printf("Fill Marshaled: %v", xxFill)
+	
 	if xxFill != `<patternFill></patternFill>`{
 		result += xxFill 	
 	}	
@@ -506,8 +492,6 @@ func (dxfFill *xlsxFill) MarshalDxfFill()(result string, err error){
 	result += subparts	
 	result += `</patternFill></fill>`
 	return
-
-	// usporediti sa originalnom funkcijom 722 linija
 }
 
 

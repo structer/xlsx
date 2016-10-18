@@ -30,14 +30,15 @@ type File struct {
 func (f *File) AddCF(cf map[string][]map[string]string) (err error){
 	// loop over styles and get largest dxfid
 	// after setting new dxfs increment count of dxfs
-	newDxfId := "0"
+	newDxfId := "0"	
 	if f.styles != nil {
 		newDxfId = f.styles.Dxfs.Count
 		if newDxfId == ""{
 			newDxfId = "0"
 		}
 	}
-	for _, sheet := range f.Sheets {
+	
+	for _, sheet := range f.Sheets {		
 		// loop over file CF to get dxf last priority
 		lastPriority := 0
 		for _, CFFile := range sheet.ConditionalFormatting {
@@ -49,8 +50,9 @@ func (f *File) AddCF(cf map[string][]map[string]string) (err error){
 				lastPriority = priorityCFFile
 			}
 		}
+		
 		// loop over request cf's and add it to first sheet
-		for _, CFMap := range cf["cf"]{
+		for _, CFMap := range cf["cf"]{			
 			newCF := new(conditionalFormatting)
 			newCF.Sqref = CFMap["sqref"]
 			newCF.CfRule.Type = "expression"			
@@ -67,12 +69,18 @@ func (f *File) AddCF(cf map[string][]map[string]string) (err error){
 			newDxf := new(xlsxDxf)	
 
 			dxfFill.PatternFill.BgColor.RGB = CFMap["BgColor"]
+			
 			newDxf.Fill = *dxfFill
+			if f.styles == nil{
+				f.styles = new(xlsxStyleSheet)
+			}
 			f.styles.Dxfs.Dxf = append(f.styles.Dxfs.Dxf, *newDxf)
+			
 			intNewDxfId, err := strconv.Atoi(newDxfId)
 			if err != nil {
 				return err
 			}
+			
 			intNewDxfId++
 			newDxfId = strconv.Itoa(intNewDxfId)			
 		}
