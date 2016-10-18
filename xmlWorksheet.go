@@ -22,8 +22,37 @@ type xlsxWorksheet struct {
 	PageMargins   xlsxPageMargins   `xml:"pageMargins"`
 	PageSetUp     xlsxPageSetUp     `xml:"pageSetup"`
 	HeaderFooter  xlsxHeaderFooter  `xml:"headerFooter"`
+	ConditionalFormatting []xlsxConditionalFormatting `xml:"conditionalFormatting"`
 }
 
+// xlsxConditionalFormatting directly maps the ConditionalFormatting element in the namespace
+// http://schemas.openxmlformats.org/spreadsheetml/2006/main -
+// currently I have not checked it for completeness - it does as much
+// as I need.
+type xlsxConditionalFormatting struct {
+	CfRule xlsxCfRule 		`xml:"cfRule"`
+	Sqref  string			`xml:"sqref,attr"`
+}
+// xlsxCfRule directly maps the xlsxCfRule element in the namespace
+// http://schemas.openxmlformats.org/spreadsheetml/2006/main -
+// currently I have not checked it for completeness - it does as much
+// as I need.
+type xlsxCfRule struct {
+	Formula 	xlsxFormula 	`xml:"formula"`
+	Type   		string         	`xml:"type,attr"`
+	DxfId   	string         	`xml:"dxfId,attr"`
+	Priority   	string      	`xml:"priority,attr"`
+	Operator   	string         	`xml:"operator,attr,omitempty"`
+	Text  	 	string         	`xml:"text,attr,omitempty"`
+}
+
+// xlsxFormula directly maps the xlsxFormula element in the namespace
+// http://schemas.openxmlformats.org/spreadsheetml/2006/main -
+// currently I have not checked it for completeness - it does as much
+// as I need.
+type xlsxFormula struct {
+	Value string `xml:",chardata"`
+}
 // xlsxHeaderFooter directly maps the headerFooter element in the namespace
 // http://schemas.openxmlformats.org/spreadsheetml/2006/main -
 // currently I have not checked it for completeness - it does as much

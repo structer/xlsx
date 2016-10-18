@@ -79,12 +79,22 @@ type xlsxStyleSheet struct {
 	CellStyleXfs *xlsxCellStyleXfs `xml:"cellStyleXfs,omitempty"`
 	CellXfs      xlsxCellXfs       `xml:"cellXfs,omitempty"`
 	NumFmts      xlsxNumFmts       `xml:"numFmts,omitempty"`
+	Dxfs      dxfs       `xml:"dxfs,omitempty"`
 
 	theme *theme
 
 	sync.RWMutex   // protects the following
 	styleCache     map[int]*Style
 	numFmtRefTable map[int]xlsxNumFmt
+}
+type dxfs struct {
+	Count 	string 		`xml:"count,attr,omitempty"`
+	Dxf 	[]xlsxDxf 	`xml:"dxf,omitempty"`
+}
+
+type xlsxDxf struct {
+	Font xlsxFont `xml:"font,omitempty"`
+	Fill xlsxFill `xml:"fill,omitempty"`
 }
 
 func newXlsxStyleSheet(t *theme) *xlsxStyleSheet {
@@ -406,9 +416,100 @@ func (styles *xlsxStyleSheet) Marshal() (string, error) {
 		}
 		result += xcellStyles
 	}
-
+	/*
+	styleBody, err := xml.Marshal(styles.Dxfs)
+	if err != nil {
+		return "", err
+	}*/
+	if styles.Dxfs.Dxf != nil{
+		xDxfs, err := styles.Dxfs.Marshal()
+		if err != nil{
+			return "", err
+		}
+		result += xDxfs
+	}
+	
+	//fmt.Printf("Body: %+v",string(styleBody))
 	return result + "</styleSheet>", nil
 }
+
+// xlsxDxfs directly maps the Dxfs element in the namespace
+// http://schemas.openxmlformats.org/spreadsheetml/2006/main -
+// currently I have not checked it for completeness - it does as much
+// as I need.
+type xlsxDxfs struct {
+	Count int      `xml:"count,attr"`
+	Dxfs    []xlsxDxf `xml:"dxf,omitempty"`
+}
+
+func (dxfsElement *dxfs) Marshal() (result string, err error) {
+	DxfCount, err := strconv.Atoi(dxfsElement.Count)
+	if err != nil{
+		return "", err
+	}
+	if DxfCount > 0 {
+		result = fmt.Sprintf(`<dxfs count="%d">`, DxfCount)
+		for _, Dxf := range dxfsElement.Dxf {
+			var xxf string
+			xxf, err = Dxf.Marshal()
+			if err != nil {
+				return
+			}
+			result += xxf
+		}
+		result += `</dxfs>`
+	}
+	return
+}
+
+func (Dxf *xlsxDxf) Marshal() (result string, err error){
+	// dxf ima font i fill elemente uvijek, i za Font i Fill neki elementi iako su prazni trebaju biti izbačeni
+	// dakle proći kroz Font i izbaciti osve ukoliko su prazni 
+	// ova 4 su bila prazna: <sz></sz><name></name><family></family><charset>
+	// ostali za font su još koji nisu bili prazni: 
+	result = `<dxf>`
+	xxFont, err := Dxf.Font.Marshal()
+	if err != nil{
+		return 
+	}
+	if xxFont != `<font></font>`{
+		result += xxFont	
+	}
+	
+	// za fill su bili prazni:
+	// za fill su bili puni: 
+	//fmt.Printf("Fill: %+v", Dxf.Fill)
+	xxFill, err := Dxf.Fill.MarshalDxfFill()
+	if err != nil{
+		return 
+	}
+	//fmt.Printf("Fill Marshaled: %v", xxFill)
+	if xxFill != `<patternFill></patternFill>`{
+		result += xxFill 	
+	}	
+
+	result += `</dxf>`
+
+	return 
+} 
+
+func (dxfFill *xlsxFill) MarshalDxfFill()(result string, err error){	
+	result = `<fill><patternFill>`
+	subparts := ""
+
+	if dxfFill.PatternFill.FgColor.RGB != "" {
+		subparts += fmt.Sprintf(`<fgColor rgb="%s"/>`, dxfFill.PatternFill.FgColor.RGB)
+	}
+	if dxfFill.PatternFill.BgColor.RGB != "" {
+		subparts += fmt.Sprintf(`<bgColor rgb="%s"/>`, dxfFill.PatternFill.BgColor.RGB)
+	}	
+	result += subparts	
+	result += `</patternFill></fill>`
+	return
+
+	// usporediti sa originalnom funkcijom 722 linija
+}
+
 
 // xlsxNumFmts directly maps the numFmts element in the namespace
 // http://schemas.openxmlformats.org/spreadsheetml/2006/main -

@@ -664,6 +664,28 @@ func readSheetFromFile(sc chan *indexedSheet, index int, rsheet xlsxSheet, fi *F
 	sheet.Rows, sheet.Cols, sheet.MaxCol, sheet.MaxRow = readRowsFromSheet(worksheet, fi, sheet)
 	sheet.Hidden = rsheet.State == sheetStateHidden || rsheet.State == sheetStateVeryHidden
 	sheet.SheetViews = readSheetViews(worksheet.SheetViews)
+	
+
+	SheetConditionalFormattings := new([]conditionalFormatting)
+	
+	for _, condFormat := range worksheet.ConditionalFormatting{
+		FormulaCF := new(formulaCF)
+		CfRule := new(cfRule)
+		SheetConditionalFormatting := new(conditionalFormatting)		
+		
+		FormulaCF.Value = condFormat.CfRule.Formula.Value
+		CfRule.Formula = *FormulaCF
+		CfRule.Type = condFormat.CfRule.Type
+		CfRule.DxfId = condFormat.CfRule.DxfId
+		CfRule.Priority = condFormat.CfRule.Priority
+		CfRule.Operator = condFormat.CfRule.Operator
+		CfRule.Text = condFormat.CfRule.Text
+		
+		SheetConditionalFormatting.CfRule = *CfRule
+		SheetConditionalFormatting.Sqref = condFormat.Sqref
+		*SheetConditionalFormattings = append(*SheetConditionalFormattings, *SheetConditionalFormatting)		
+	}
+	sheet.ConditionalFormatting = *SheetConditionalFormattings	
 
 	sheet.SheetFormat.DefaultColWidth = worksheet.SheetFormatPr.DefaultColWidth
 	sheet.SheetFormat.DefaultRowHeight = worksheet.SheetFormatPr.DefaultRowHeight

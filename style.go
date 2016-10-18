@@ -14,6 +14,17 @@ type Style struct {
 	ApplyAlignment  bool
 	Alignment       Alignment
 	NamedStyleIndex *int
+	Dxfs      Dxfs
+}
+
+type Dxfs struct {
+	Count 	string
+	Dxf 	[]dxf
+}
+
+type dxf struct {
+	FontDxf Font
+	FillDxf Fill
 }
 
 // Return a new Style structure initialised with the default values.

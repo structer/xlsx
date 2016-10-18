@@ -9,6 +9,9 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"os/exec"
+	//"errors"
+	"path"
 )
 
 // File is a high level structure providing a slice of Sheet structs
@@ -22,6 +25,61 @@ type File struct {
 	Sheet          map[string]*Sheet
 	theme          *theme
 	DefinedNames   []*xlsxDefinedName
+}
+
+func (f *File) AddCF(cf map[string][]map[string]string) (err error){
+	// loop over styles and get largest dxfid
+	// after setting new dxfs increment count of dxfs
+	newDxfId := "0"
+	if f.styles != nil {
+		newDxfId = f.styles.Dxfs.Count
+		if newDxfId == ""{
+			newDxfId = "0"
+		}
+	}
+	for _, sheet := range f.Sheets {
+		// loop over file CF to get dxf last priority
+		lastPriority := 0
+		for _, CFFile := range sheet.ConditionalFormatting {
+			priorityCFFile, err := strconv.Atoi(CFFile.CfRule.Priority)
+			if err != nil {
+				return err
+			}
+			if priorityCFFile > lastPriority{
+				lastPriority = priorityCFFile
+			}
+		}
+		// loop over request cf's and add it to first sheet
+		for _, CFMap := range cf["cf"]{
+			newCF := new(conditionalFormatting)
+			newCF.Sqref = CFMap["sqref"]
+			newCF.CfRule.Type = "expression"			
+			newCF.CfRule.DxfId = newDxfId
+			lastPriority++
+			strLastPriority := strconv.Itoa(lastPriority)
+			newCF.CfRule.Priority = strLastPriority
+			newCF.CfRule.Formula.Value = CFMap["formula"]
+
+			// add newCF to sheet
+			sheet.ConditionalFormatting = append(sheet.ConditionalFormatting, *newCF)
+			// make new xlsxFill from request
+			dxfFill := new(xlsxFill)
+			newDxf := new(xlsxDxf)	
+
+			dxfFill.PatternFill.BgColor.RGB = CFMap["BgColor"]
+			newDxf.Fill = *dxfFill
+			f.styles.Dxfs.Dxf = append(f.styles.Dxfs.Dxf, *newDxf)
+			intNewDxfId, err := strconv.Atoi(newDxfId)
+			if err != nil {
+				return err
+			}
+			intNewDxfId++
+			newDxfId = strconv.Itoa(intNewDxfId)			
+		}
+		f.styles.Dxfs.Count = newDxfId
+		break
+	}
+	return nil
 }
 
 // Create a new File
@@ -85,8 +143,8 @@ func FileToSlice(path string) ([][][]string, error) {
 }
 
 // Save the File to an xlsx file at the provided path.
-func (f *File) Save(path string) (err error) {
-	target, err := os.Create(path)
+func (f *File) Save(filePath string) (err error) {
+	target, err := os.Create(filePath)
 	if err != nil {
 		return err
 	}
@@ -94,7 +152,58 @@ func (f *File) Save(path string) (err error) {
 	if err != nil {
 		return err
 	}
-	return target.Close()
+	tCl := target.Close()
+	for _, sheet := range f.Sheets {
+		if len(sheet.ConditionalFormatting) != 0 {
+			// repair xlsx with libreoffice
+			// If worksheet has conditional formats repair the file with libreoffice for Excel 2011 on Mac  
+		    _, err = exec.LookPath("libreoffice")
+		    if err != nil {
+		        strErr := "libreoffice utility is not installed! apt-get install libreoffice"
+		        fmt.Println(strErr)
+		        return err
+		    }
+		    fileName := path.Base(filePath)
+		    path_without_filename := path.Dir(filePath)
+		    if path_without_filename == "."{
+		        path_without_filename = ""
+		    }
+			outdir := path_without_filename+"/repaired_xlsx"
+		    if _, err := os.Stat(outdir); err != nil {
+	        	if os.IsNotExist(err) {
+		            if os.MkdirAll(outdir,0777) != nil {
+		                return fmt.Errorf("Create "+outdir+" failed")
+		            }
+		        }
+		    }
+		    strCMD := `libreoffice --headless --convert-to xlsx:"Calc MS Excel 2007 XML" `+ filePath + " --outdir " + outdir 
+		    out, err := exec.Command("/bin/sh", "-c", strCMD).Output()		    
+		    fmt.Printf("Libreoffice xlsx repair for : %v ,out: %v \n", filePath, string(out))
+		    if err != nil{
+		        fmt.Printf("Libreoffice cmd err: %v", err.Error())
+		        return err
+		    }
+		    overwritingSource := outdir+"/"+fileName
+		    // cmd to overwrite input xlsx with output xlsx		   
+		    strCMD = "mv -f "+overwritingSource+" "+filePath
+		    out, err = exec.Command("/bin/sh", "-c", strCMD).Output()
+		    if err != nil{
+		    	fmt.Printf("Overwriting original xlsx failed : %v , out: %v \n", filePath, string(out))
+		        fmt.Printf("Cmd err: %v", err.Error())
+		        return err
+		    }
+			/*
+		    //  remove repaired xlsx from output directory		   
+		    strCMD = "rm "+overwritingSource
+		    out, err = exec.Command("/bin/sh", "-c", strCMD).Output()	
+		    fmt.Printf("Removing original xlsx failed for : %v , out: %v \n", filePath, string(out))
+		    if err != nil{
+		        fmt.Printf("Cmd err: %v", err.Error())
+		        return err
+		    }*/
+		}
+	}
+	return tCl
 }
 
 // Write the File to io.Writer as xlsx
@@ -158,6 +267,7 @@ func (f *File) makeWorkbook() xlsxWorkbook {
 			IterateDelta: 0.001,
 		},
 	}
+
 }
 
 // Some tools that read XLSX files have very strict requirements about
@@ -199,6 +309,7 @@ func (f *File) MarshallParts() (map[string]string, error) {
 
 	parts = make(map[string]string)
 	workbook = f.makeWorkbook()
+
 	sheetIndex := 1
 
 	if f.styles == nil {
@@ -262,7 +373,6 @@ func (f *File) MarshallParts() (map[string]string, error) {
 	if err != nil {
 		return parts, err
 	}
-
 	parts["xl/styles.xml"], err = f.styles.Marshal()
 	if err != nil {
 		return parts, err

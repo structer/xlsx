@@ -18,6 +18,25 @@ type Sheet struct {
 	Selected    bool
 	SheetViews  []SheetView
 	SheetFormat SheetFormat
+	ConditionalFormatting []conditionalFormatting
+}
+
+type conditionalFormatting struct {
+	CfRule cfRule
+	Sqref  string
+}
+
+type cfRule struct {
+	Formula 	formulaCF
+	Type   		string
+	DxfId   	string
+	Priority   	string
+	Operator   	string
+	Text  	 	string
+}
+
+type formulaCF struct {
+	Value string
 }
 
 type SheetView struct {
@@ -178,6 +197,7 @@ func (s *Sheet) handleMerged() {
 func (s *Sheet) makeXLSXSheet(refTable *RefTable, styles *xlsxStyleSheet) *xlsxWorksheet {
 	worksheet := newXlsxWorksheet()
 	xSheet := xlsxSheetData{}
+	//xConditionalFormatting := []xlsxConditionalFormatting{}
 	maxRow := 0
 	maxCell := 0
 	var maxLevelCol, maxLevelRow uint8
@@ -337,6 +357,27 @@ func (s *Sheet) makeXLSXSheet(refTable *RefTable, styles *xlsxStyleSheet) *xlsxW
 		dimension.Ref = "A1"
 	}
 	worksheet.Dimension = dimension
+
+	SheetConditionalFormattings := new([]xlsxConditionalFormatting)
+	
+	for _, condFormat := range s.ConditionalFormatting{
+		FormulaCF := new(xlsxFormula)
+		CfRule := new(xlsxCfRule)
+		SheetConditionalFormatting := new(xlsxConditionalFormatting)		
+		
+		FormulaCF.Value = condFormat.CfRule.Formula.Value
+		CfRule.Formula = *FormulaCF
+		CfRule.Type = condFormat.CfRule.Type
+		CfRule.DxfId = condFormat.CfRule.DxfId
+		CfRule.Priority = condFormat.CfRule.Priority
+		CfRule.Operator = condFormat.CfRule.Operator
+		CfRule.Text = condFormat.CfRule.Text
+		
+		SheetConditionalFormatting.CfRule = *CfRule
+		SheetConditionalFormatting.Sqref = condFormat.Sqref
+		*SheetConditionalFormattings = append(*SheetConditionalFormattings, *SheetConditionalFormatting)		
+	}
+	worksheet.ConditionalFormatting = *SheetConditionalFormattings
 	return worksheet
 }
 
