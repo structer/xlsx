@@ -359,7 +359,7 @@ func (s *Sheet) makeXLSXSheet(refTable *RefTable, styles *xlsxStyleSheet) *xlsxW
 	worksheet.Dimension = dimension
 
 	SheetConditionalFormattings := new([]xlsxConditionalFormatting)
-	
+	//intCount := 0
 	for _, condFormat := range s.ConditionalFormatting{
 		FormulaCF := new(xlsxFormula)
 		CfRule := new(xlsxCfRule)
@@ -368,6 +368,16 @@ func (s *Sheet) makeXLSXSheet(refTable *RefTable, styles *xlsxStyleSheet) *xlsxW
 		FormulaCF.Value = condFormat.CfRule.Formula.Value
 		CfRule.Formula = *FormulaCF
 		CfRule.Type = condFormat.CfRule.Type
+		/*if intCount == 0 {
+			CfRule.DxfId = "3"
+			CfRule.Priority = "2"
+		}
+		if intCount == 1 {
+			CfRule.DxfId = "1"
+			CfRule.Priority = "1"
+		}
+		intCount++
+		*/
 		CfRule.DxfId = condFormat.CfRule.DxfId
 		CfRule.Priority = condFormat.CfRule.Priority
 		CfRule.Operator = condFormat.CfRule.Operator

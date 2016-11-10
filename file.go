@@ -9,9 +9,9 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"os/exec"
+	//"os/exec"
 	//"errors"
-	"path"
+	//"path"
 )
 
 // File is a high level structure providing a slice of Sheet structs
@@ -52,7 +52,8 @@ func (f *File) AddCF(cf map[string][]map[string]string) (err error){
 		}
 		
 		// loop over request cf's and add it to first sheet
-		for _, CFMap := range cf["cf"]{			
+		for _, CFMap := range cf["cf"]{
+					
 			newCF := new(conditionalFormatting)
 			newCF.Sqref = CFMap["sqref"]
 			newCF.CfRule.Type = "expression"			
@@ -64,6 +65,7 @@ func (f *File) AddCF(cf map[string][]map[string]string) (err error){
 
 			// add newCF to sheet
 			sheet.ConditionalFormatting = append(sheet.ConditionalFormatting, *newCF)
+			
 			// make new xlsxFill from request
 			dxfFill := new(xlsxFill)
 			newDxf := new(xlsxDxf)	
@@ -161,56 +163,6 @@ func (f *File) Save(filePath string) (err error) {
 		return err
 	}
 	tCl := target.Close()
-	for _, sheet := range f.Sheets {
-		if len(sheet.ConditionalFormatting) != 0 {
-			// repair xlsx with libreoffice
-			// If worksheet has conditional formats repair the file with libreoffice for Excel 2011 on Mac  
-		    _, err = exec.LookPath("libreoffice")
-		    if err != nil {
-		        strErr := "libreoffice utility is not installed! apt-get install libreoffice"
-		        fmt.Println(strErr)
-		        return err
-		    }
-		    fileName := path.Base(filePath)
-		    path_without_filename := path.Dir(filePath)
-		    if path_without_filename == "."{
-		        path_without_filename = ""
-		    }
-			outdir := path_without_filename+"/repaired_xlsx"
-		    if _, err := os.Stat(outdir); err != nil {
-	        	if os.IsNotExist(err) {
-		            if os.MkdirAll(outdir,0777) != nil {
-		                return fmt.Errorf("Create "+outdir+" failed")
-		            }
-		        }
-		    }
-		    strCMD := `libreoffice --headless --convert-to xlsx:"Calc MS Excel 2007 XML" `+ filePath + " --outdir " + outdir 
-		    out, err := exec.Command("/bin/sh", "-c", strCMD).Output()		    
-		    fmt.Printf("Libreoffice xlsx repair for : %v ,out: %v \n", filePath, string(out))
-		    if err != nil{
-		        fmt.Printf("Libreoffice cmd err: %v", err.Error())
-		        return err
-		    }
-		    overwritingSource := outdir+"/"+fileName
-		    // cmd to overwrite input xlsx with output xlsx		   
-		    strCMD = "mv -f "+overwritingSource+" "+filePath
-		    out, err = exec.Command("/bin/sh", "-c", strCMD).Output()
-		    if err != nil{
-		    	fmt.Printf("Overwriting original xlsx failed : %v , out: %v \n", filePath, string(out))
-		        fmt.Printf("Cmd err: %v", err.Error())
-		        return err
-		    }
-			/*
-		    //  remove repaired xlsx from output directory		   
-		    strCMD = "rm "+overwritingSource
-		    out, err = exec.Command("/bin/sh", "-c", strCMD).Output()	
-		    fmt.Printf("Removing original xlsx failed for : %v , out: %v \n", filePath, string(out))
-		    if err != nil{
-		        fmt.Printf("Cmd err: %v", err.Error())
-		        return err
-		    }*/
-		}
-	}
 	return tCl
 }
 
@@ -345,7 +297,11 @@ func (f *File) MarshallParts() (map[string]string, error) {
 		if err != nil {
 			return parts, err
 		}
-		sheetIndex++
+		//fmt.Printf("sheet 1: %v",parts["xl/worksheets/sheet1.xml"])
+		//parts["xl/worksheets/sheet1.xml"] = strings.Replace(parts["xl/worksheets/sheet1.xml"], `<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">`,`<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="x14ac" xmlns:x14ac="http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac">`, -1) 
+	/*	parts["xl/worksheets/sheet1.xml"] = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="x14ac" xmlns:x14ac="http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac"><sheetPr filterMode="false"><pageSetUpPr fitToPage="false"></pageSetUpPr></sheetPr><dimension ref="A1:C2"></dimension><sheetViews><sheetView tabSelected="1" workbookViewId="0"><selection activeCell="A2" sqref="A2"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="12.85"></sheetFormatPr><cols><col collapsed="false" hidden="false" max="1" min="1" style="1" width="9.5" customWidth="1"></col><col collapsed="false" hidden="false" max="2" min="2" style="1" width="9.5" customWidth="1"></col><col collapsed="false" hidden="false" max="3" min="3" style="1" width="9.5" customWidth="1"></col></cols><sheetData><row r="1"><c r="A1" s="2" t="s"><v>0</v></c><c r="B1" s="3"><v>150</v></c><c r="C1" s="3" t="s"><v>1</v></c></row><row r="2"><c r="A2" s="3"><v>40</v></c><c r="B2" s="4" t="s"><v>2</v></c><c r="C2" s="3" t="s"><v>3</v></c></row></sheetData><conditionalFormatting sqref="B1"><cfRule type="expression" dxfId="3" priority="2"><formula>$B$1&gt;50</formula></cfRule></conditionalFormatting><conditionalFormatting sqref="A2"><cfRule type="expression" dxfId="1" priority="1"><formula>$A$2&lt;50</formula></cfRule></conditionalFormatting><printOptions headings="false" gridLines="false" gridLinesSet="true" horizontalCentered="false" verticalCentered="false"></printOptions><pageMargins left="0.7875" right="0.7875" top="1.05277777777778" bottom="1.05277777777778" header="0.7875" footer="0.7875"></pageMargins><headerFooter><oddHeader>&amp;C&amp;"Times New Roman,Regular"&amp;12&amp;A</oddHeader><oddFooter>&amp;C&amp;"Times New Roman,Regular"&amp;12Page &amp;P</oddFooter></headerFooter><extLst><ext uri="{64002731-A6B0-56B0-2670-7721B7C09600}" xmlns:mx="http://schemas.microsoft.com/office/mac/excel/2008/main"><mx:PLV Mode="0" OnePage="0" WScale="0"/></ext></extLst></worksheet>`
+	*/	sheetIndex++
 	}
 
 	workbookMarshal, err := marshal(workbook)

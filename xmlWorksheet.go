@@ -17,12 +17,12 @@ type xlsxWorksheet struct {
 	SheetFormatPr xlsxSheetFormatPr `xml:"sheetFormatPr"`
 	Cols          *xlsxCols         `xml:"cols,omitempty"`
 	SheetData     xlsxSheetData     `xml:"sheetData"`
+	ConditionalFormatting []xlsxConditionalFormatting `xml:"conditionalFormatting"`
 	MergeCells    *xlsxMergeCells   `xml:"mergeCells,omitempty"`
 	PrintOptions  xlsxPrintOptions  `xml:"printOptions"`
 	PageMargins   xlsxPageMargins   `xml:"pageMargins"`
 	PageSetUp     xlsxPageSetUp     `xml:"pageSetup"`
-	HeaderFooter  xlsxHeaderFooter  `xml:"headerFooter"`
-	ConditionalFormatting []xlsxConditionalFormatting `xml:"conditionalFormatting"`
+	HeaderFooter  xlsxHeaderFooter  `xml:"headerFooter"`	
 }
 
 // xlsxConditionalFormatting directly maps the ConditionalFormatting element in the namespace

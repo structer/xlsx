@@ -441,15 +441,26 @@ func (dxfsElement *dxfs) Marshal() (result string, err error) {
 		return "", err
 	}
 	if DxfCount > 0 {
-		result = fmt.Sprintf(`<dxfs count="%d">`, DxfCount)
+		//result = `<dxfs count="4"><dxf><font><color rgb="FF006100"/></font><fill><patternFill><bgColor rgb="FFC6EFCE"/></patternFill></fill></dxf><dxf><font><color rgb="FF006100"/></font><fill><patternFill><bgColor rgb="FFC6EFCE"/></patternFill></fill></dxf><dxf><font><color rgb="FF9C0006"/></font><fill><patternFill><bgColor rgb="FFFFC7CE"/></patternFill></fill></dxf><dxf><font><color rgb="FF9C0006"/></font><fill><patternFill><bgColor rgb="FFFFC7CE"/></patternFill></fill></dxf></dxfs>`
+		
+		resultBegin := fmt.Sprintf(`<dxfs count="%d">`, DxfCount)
+		countDxf := 0
 		for _, Dxf := range dxfsElement.Dxf {
 			var xxf string
 			xxf, err = Dxf.Marshal()
 			if err != nil {
 				return
 			}
-			result += xxf
+			result += xxf			
+			countDxf++
+			if countDxf == len(dxfsElement.Dxf){
+				result += xxf
+			}
 		}
+		if DxfCount != countDxf {
+			resultBegin = fmt.Sprintf(`<dxfs count="%d">`, countDxf)
+		}
+		result = resultBegin + result
 		result += `</dxfs>`
 	}
 	return
